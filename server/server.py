@@ -1,10 +1,38 @@
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-from some_embedding_library import embed_text  # Replace with actual embedding function
+import requests
+import json # Replace with actual embedding function
 from flask import Flask, request, jsonify
+from dotenv import load_dotenv
+import os
+import cohere
 
+# Load environment variables from .env file
+load_dotenv()
 
+# Access the API key
+API_KEY = os.getenv('COHERE')
 
+if not API_KEY:
+    raise ValueError("Please set the COHERE_API_KEY environment variable.")
+
+# Initialize the Cohere client
+co = cohere.Client(API_KEY)
+
+def embed_text(text):
+    try:
+        response = co.embed(
+            texts=[text],  # Pass the text as a list
+            model="embed-english-v3.0",  # Use the English embedding model
+            input_type="search_query"  # Optional: Specify the input type
+        )
+
+        # Extract the embeddings from the response
+        embeddings = response.embeddings[0]  # Get the first (and only) embedding
+        return embeddings
+
+    except Exception as e:
+        return []
 
 class MCPServer:
     def __init__(self):

@@ -1,56 +1,81 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from typing import Optional, Dict, Any 
-from testmain import SynthiaMcpServer  # Import the refactored class
-import asyncio
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+from some_embedding_library import embed_text  # Replace with actual embedding function
+from flask import Flask, request, jsonify
 
-app = FastAPI()
 
-# Define request models
-class ProjectInitRequest(BaseModel):
-    project_name: str
-    description: Optional[str] = ""
-    template: Optional[str] = "default"
 
-class SuggestFragmentRequest(BaseModel):
-    project_id: str
-    context: str
-    fragment_type: Optional[str] = "mixed"
 
-class SaveFragmentRequest(BaseModel):
-    project_id: str
-    fragment: str
-    fragment_type: Optional[str] = "mixed"
-    metadata: Optional[Dict[str, Any]] = {}
+class MCPServer:
+    def __init__(self):
+        self.knowledge_db = {}  # Dictionary with embeddings as keys and content as values
 
-class GenerateCitationsRequest(BaseModel):
-    project_id: str
-    format: Optional[str] = "apa"
+    def add_knowledge(self, new_text):  # this should be changed
+        """Adds a new knowledge fragment based on user-provided additions."""
+        embedding = embed_text(new_text)
+        self.knowledge_db[tuple(embedding)] = new_text
 
-# Initialize the SynthiaMcpServer
-server = SynthiaMcpServer(mock=True)
+    def find_similar_knowledge(self, prompt, top_k=5):
+        """Finds the most similar knowledge fragments based on the prompt."""
+        prompt_embedding = embed_text(prompt)
+        embeddings = np.array(list(self.knowledge_db.keys()))
+        similarities = cosine_similarity([prompt_embedding], embeddings)[0]
+        top_indices = np.argsort(similarities)[-top_k:][::-1]
+        return [(self.knowledge_db[tuple(embeddings[i])], similarities[i]) for i in top_indices]  # no need to return cosine_similarities
 
-# Define API endpoints
-@app.post("/project-init")
-async def project_init(request: ProjectInitRequest):
-    response = await server._handle_project_init(request.dict())
-    return response
+    def generate_content(self, prompt):
+        """Generates content based on similar knowledge fragments."""
+        similar_knowledge = self.find_similar_knowledge(prompt)
+        generated_text = "\n".join([frag[0] for frag in similar_knowledge])
+        return f"Generated Content:\n{generated_text}"
 
-@app.post("/suggest-fragment")
-async def suggest_fragment(request: SuggestFragmentRequest):
-    response = await server._handle_suggest_fragment(request.dict())
-    return response
+    def evaluate_paper_contribution(self, paper_text, selected_knowledge):
+        """Determines the contribution of selected knowledge fragments."""
+        paper_embedding = embed_text(paper_text)
+        knowledge_embeddings = [embed_text(k) for k in selected_knowledge]
+        contributions = cosine_similarity([paper_embedding], knowledge_embeddings)[0]
+        return {selected_knowledge[i]: contributions[i] for i in range(len(selected_knowledge))}
 
-@app.post("/save-fragment")
-async def save_fragment(request: SaveFragmentRequest):
-    response = await server._handle_save_fragment(request.dict())
-    return response
+mcp = MCPServer()
+@app.route('/generate', methods=['POST'])
+def generate():
+    data = request.json
+    prompt = data.get("prompt", "")
+    generated_content = mcp.generate_content(prompt)
+    return jsonify({"generated_content": generated_content})
 
-@app.post("/generate-citations")
-async def generate_citations(request: GenerateCitationsRequest):
-    response = await server._handle_generate_citations(request.dict())
-    return response
+
+@app.route('/evaluate', methods=['POST'])
+def evaluate():
+    data = request.json
+    paper_text = data.get("paper_text", "")
+    selected_knowledge = data.get("selected_knowledge", [])
+    contribution_scores = mcp.evaluate_paper_contribution(paper_text, selected_knowledge)
+    return jsonify({"contribution_scores": contribution_scores})
+
+@app.route('/add_knowledge', methods=['POST'])
+def add_knowledge():
+    data = request.json
+    new_text = data.get("new_text", "")
+    if new_text:
+        mcp.add_knowledge(new_text)
+        return jsonify({"message": "Knowledge added successfully."})
+    return jsonify({"error": "No text provided."}), 400
+  
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    app.run(debug=True)
+
+
+
+
+
+
+    # server.add_knowledge("Knowledge fragment 1") # TODO
+    # server.add_knowledge("Knowledge fragment 2")  #TODO
+    # server.add_knowledge("Knowledge fragment 3")  #TODO
+    # prompt = "Prompt for content generation"    # TODO
+    # print(server.generate_content(prompt))
+    # paper_text = "Paper text with selected knowledge fragments"  # how and when to get this?
+    # selected_knowledge = ["Knowledge fragment 1", "Knowledge fragment 3"]  # how to determine this?
+    # print(server.evaluate_paper_contribution(paper_text, selected_knowledge))

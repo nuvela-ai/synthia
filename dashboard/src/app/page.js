@@ -64,21 +64,23 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen px-6 sm:px-12 bg-gradient-to-br from-indigo-950 via-slate-900 to-purple-950 text-white">
+    <div className="flex flex-col items-center justify-center min-h-screen px-6 sm:px-12 bg-[#5880FA] text-white">
       {/* Logo */}
       <header className="flex flex-col items-center gap-4 text-center py-8">
         <div className="relative group">
+          {/* Logo Image */}
           <Image
             className="opacity-90 hover:opacity-100 transition-all duration-500 transform group-hover:scale-105"
-            src="/next.svg"
+            src="/logo.png"
             alt="Next.js logo"
             width={180}
             height={38}
             priority
           />
-          <div className="absolute -inset-1 rounded-lg bg-gradient-to-r from-pink-500 via-indigo-500 to-cyan-500 opacity-0 group-hover:opacity-30 blur-xl transition-all duration-500"></div>
+          {/* Gradient Highlight */}
+          <div className="absolute -inset-2 rounded-lg bg-gradient-to-r from-pink-500/30 via-indigo-500/30 to-cyan-500/30 opacity-0 group-hover:opacity-100 blur-md transition-all duration-500"></div>
         </div>
-        <h1 className="text-3xl font-extrabold tracking-wide sm:text-4xl bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500 drop-shadow-md">
+        <h1 className="text-3xl font-extrabold tracking-wide sm:text-4xl bg-clip-text text-transparent bg-white drop-shadow-md">
           Synthia Dashboard
         </h1>
         <p className="text-slate-300 text-sm sm:text-base italic">Project Management Dashboard</p>

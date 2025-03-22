@@ -1,8 +1,7 @@
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 import requests
-import json # Replace with actual embedding function
-# from flask import Flask, request, jsonify
+import json
 from dotenv import load_dotenv
 import os
 import cohere
@@ -13,7 +12,6 @@ from mcp.server.fastmcp import FastMCP
 import uuid
 from sklearn.metrics.pairwise import cosine_similarity
 
-# Load environment variables from .env file
 load_dotenv()
 
 COHERE_API_KEY = os.getenv('COHERE_API_KEY')
@@ -87,6 +85,6 @@ def CalculateContribution(paper, fragmentList): # fragmentList is a list of ids 
     contributions = cosine_similarity([paper_embedding], vectors)[0]
     return {fragmentList[i]: contributions[i] for i in range(len(fragmentList))}
 
- 
+
 if __name__ == "__main__":
     mcp.run(transport='stdio')

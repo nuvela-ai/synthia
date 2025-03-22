@@ -13,22 +13,19 @@ export default function Home() {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const response = await fetch("http://localhost:8000/project-init", {
+        const response = await fetch("http://localhost:5000/query_fragment", {  // Change this to your Flask endpoint
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            project_name: "Research Paper",
-            template: "research",
+            paragraph: "Some example paragraph to query",
           }),
         });
         const data = await response.json();
-        setProjects([data]);
-        setIsLoading(false);
+        console.log(data);
       } catch (error) {
         console.error("Error fetching projects:", error);
-        setIsLoading(false);
       }
     };
 
@@ -43,14 +40,13 @@ export default function Home() {
   const handleCreateProject = async (projectData) => {
     setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:8000/project-init", {
+      const response = await fetch("http://localhost:5000/upload_fragment", { // Change to match Flask
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          project_name: projectData.name,
-          template: projectData.template || "default",
+          paragraph: projectData.name, // Assuming a project is stored as a paragraph
         }),
       });
       const newProject = await response.json();
@@ -62,6 +58,7 @@ export default function Home() {
       setIsLoading(false);
     }
   };
+  
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-6 sm:px-12 bg-[#5880FA] text-white">

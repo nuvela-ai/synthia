@@ -1,6 +1,6 @@
 # Synthia
 
-Synthia is a project that integrates a Model Context Protocol (MCP) server built with Python and a React-based dashboard for configuring and managing projects.
+Synthia is a project that integrates a Model Context Protocol (MCP) server built with Python and a React-based dashboard for configuring and managing academic research projects.
 
 ## Project Structure
 

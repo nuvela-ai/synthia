@@ -24,27 +24,27 @@ function ProjectConfig({ project, onSave }) {
   };
 
   const renderDetailsTab = () => (
-    <div className="project-details">
+    <div className="space-y-4">
       {isEditing ? (
-        <form className="project-edit-form">
+        <form className="space-y-4">
           <div className="form-group">
-            <label htmlFor="name">Project Name</label>
+            <label className="block text-sm font-medium text-gray-400">Project Name</label>
             <input
               type="text"
-              id="name"
               name="name"
               value={editedProject.name}
               onChange={handleInputChange}
+              className="mt-1 p-2 w-full bg-gray-700 rounded-lg text-white"
             />
           </div>
           
           <div className="form-group">
-            <label htmlFor="template">Template</label>
+            <label className="block text-sm font-medium text-gray-400">Template</label>
             <select
-              id="template"
               name="template"
               value={editedProject.template}
               onChange={handleInputChange}
+              className="mt-1 p-2 w-full bg-gray-700 rounded-lg text-white"
             >
               <option value="default">Default</option>
               <option value="research">Research</option>
@@ -52,36 +52,44 @@ function ProjectConfig({ project, onSave }) {
             </select>
           </div>
           
-          <div className="form-actions">
-            <button type="button" className="btn-save" onClick={handleSave}>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
+              onClick={handleSave}
+            >
               Save Changes
             </button>
-            <button type="button" className="btn-cancel" onClick={handleCancel}>
+            <button
+              type="button"
+              className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg"
+              onClick={handleCancel}
+            >
               Cancel
             </button>
           </div>
         </form>
       ) : (
-        <div className="project-info">
-          <div className="project-header">
-            <h2>{project.name}</h2>
-            <button className="btn-edit" onClick={() => setIsEditing(true)}>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-semibold">{project.name}</h2>
+            <button
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
+              onClick={() => setIsEditing(true)}
+            >
               Edit
             </button>
           </div>
           
-          <div className="project-meta">
-            <div className="meta-item">
-              <span className="meta-label">ID:</span>
-              <span className="meta-value">{project.id}</span>
+          <div className="space-y-2">
+            <div className="text-sm text-gray-400">
+              <span className="font-medium">ID:</span> {project.id}
             </div>
-            <div className="meta-item">
-              <span className="meta-label">Template:</span>
-              <span className="meta-value">{project.template}</span>
+            <div className="text-sm text-gray-400">
+              <span className="font-medium">Template:</span> {project.template}
             </div>
-            <div className="meta-item">
-              <span className="meta-label">Fragments:</span>
-              <span className="meta-value">{project.fragments}</span>
+            <div className="text-sm text-gray-400">
+              <span className="font-medium">Fragments:</span> {project.fragments}
             </div>
           </div>
         </div>
@@ -90,33 +98,33 @@ function ProjectConfig({ project, onSave }) {
   );
 
   const renderFragmentsTab = () => (
-    <div className="project-fragments">
-      <h3>Fragments ({project.fragments})</h3>
+    <div className="space-y-4">
+      <h3 className="text-xl font-semibold">Fragments ({project.fragments})</h3>
       
       {project.fragments > 0 ? (
-        <div className="fragments-list">
+        <div className="text-gray-400">
           <p>Fragment list would be displayed here in a real implementation.</p>
           <p>This would include options to view, edit, and manage fragments.</p>
         </div>
       ) : (
-        <div className="empty-fragments">
+        <div className="text-gray-400">
           <p>No fragments available for this project.</p>
-          <button className="btn-add-fragment">
+          <button className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg">
             Add Fragment
           </button>
         </div>
       )}
       
-      <div className="fragment-tools">
-        <h4>Fragment Tools</h4>
-        <div className="tool-buttons">
-          <button className="tool-button" title="Suggest Fragment">
+      <div className="space-y-2">
+        <h4 className="text-lg font-semibold">Fragment Tools</h4>
+        <div className="flex gap-2">
+          <button className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg">
             Suggest Fragment
           </button>
-          <button className="tool-button" title="Save Fragment">
+          <button className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg">
             Save Fragment
           </button>
-          <button className="tool-button" title="Generate Citations">
+          <button className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg">
             Generate Citations
           </button>
         </div>
@@ -125,16 +133,24 @@ function ProjectConfig({ project, onSave }) {
   );
 
   return (
-    <div className="project-config">
-      <div className="config-tabs">
-        <button 
-          className={`tab-button ${activeTab === 'details' ? 'active' : ''}`}
+    <div className="p-6 bg-gray-800 rounded-lg shadow-lg">
+      <div className="flex gap-2 mb-4">
+        <button
+          className={`px-4 py-2 rounded-lg ${
+            activeTab === 'details'
+              ? 'bg-blue-500 text-white'
+              : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+          }`}
           onClick={() => setActiveTab('details')}
         >
           Project Details
         </button>
-        <button 
-          className={`tab-button ${activeTab === 'fragments' ? 'active' : ''}`}
+        <button
+          className={`px-4 py-2 rounded-lg ${
+            activeTab === 'fragments'
+              ? 'bg-blue-500 text-white'
+              : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+          }`}
           onClick={() => setActiveTab('fragments')}
         >
           Fragments

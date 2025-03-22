@@ -13,17 +13,21 @@ export default function Home() {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        setTimeout(() => {
-          const mockProjects = [
-            { id: 'proj_research_paper', name: 'Research Paper', template: 'research', fragments: 12 },
-            { id: 'proj_web_app', name: 'Web Application', template: 'development', fragments: 8 },
-            { id: 'proj_documentation', name: 'API Documentation', template: 'default', fragments: 5 },
-          ];
-          setProjects(mockProjects);
-          setIsLoading(false);
-        }, 1000);
+        const response = await fetch("http://localhost:8000/project-init", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            project_name: "Research Paper",
+            template: "research",
+          }),
+        });
+        const data = await response.json();
+        setProjects([data]);
+        setIsLoading(false);
       } catch (error) {
-        console.error('Error fetching projects:', error);
+        console.error("Error fetching projects:", error);
         setIsLoading(false);
       }
     };
@@ -32,27 +36,29 @@ export default function Home() {
   }, []);
 
   const handleProjectSelect = (projectId) => {
-    const project = projects.find(p => p.id === projectId);
+    const project = projects.find((p) => p.project_id === projectId);
     setSelectedProject(project);
   };
 
   const handleCreateProject = async (projectData) => {
     setIsLoading(true);
     try {
-      setTimeout(() => {
-        const newProject = {
-          id: `proj_${projectData.name.toLowerCase().replace(/\s+/g, '_')}`,
-          name: projectData.name,
-          template: projectData.template || 'default',
-          fragments: 0
-        };
-        
-        setProjects([...projects, newProject]);
-        setSelectedProject(newProject);
-        setIsLoading(false);
-      }, 800);
+      const response = await fetch("http://localhost:8000/project-init", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          project_name: projectData.name,
+          template: projectData.template || "default",
+        }),
+      });
+      const newProject = await response.json();
+      setProjects([...projects, newProject]);
+      setSelectedProject(newProject);
+      setIsLoading(false);
     } catch (error) {
-      console.error('Error creating project:', error);
+      console.error("Error creating project:", error);
       setIsLoading(false);
     }
   };
@@ -79,20 +85,20 @@ export default function Home() {
       <main className="mt-10 w-full max-w-6xl">
         <div className="flex flex-col md:flex-row gap-8">
           <div className="w-full md:w-1/3">
-            <ProjectList 
-              projects={projects} 
-              selectedProjectId={selectedProject?.id}
+            <ProjectList
+              projects={projects}
+              selectedProjectId={selectedProject?.project_id}
               onSelectProject={handleProjectSelect}
               isLoading={isLoading}
             />
           </div>
           <div className="w-full md:w-2/3">
             {selectedProject ? (
-              <ProjectConfig 
+              <ProjectConfig
                 project={selectedProject}
                 onSave={(updatedProject) => {
-                  const updatedProjects = projects.map(p => 
-                    p.id === updatedProject.id ? updatedProject : p
+                  const updatedProjects = projects.map((p) =>
+                    p.project_id === updatedProject.project_id ? updatedProject : p
                   );
                   setProjects(updatedProjects);
                   setSelectedProject(updatedProject);
@@ -101,10 +107,10 @@ export default function Home() {
             ) : (
               <div className="text-center p-6 bg-gray-800 rounded-lg shadow-lg">
                 <h2 className="text-xl font-semibold mb-4">Select a project or create a new one</h2>
-                <button 
+                <button
                   className="px-6 py-3 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-semibold transition-all shadow-md"
                   onClick={() => {
-                    const projectName = prompt('Enter project name:');
+                    const projectName = prompt("Enter project name:");
                     if (projectName) {
                       handleCreateProject({ name: projectName });
                     }

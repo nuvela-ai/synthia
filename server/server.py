@@ -21,20 +21,20 @@ PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
 pc = Pinecone(api_key=PINECONE_API_KEY)
 co = cohere.Client(COHERE_API_KEY)
 namespace="mcp-namespace"
-idx = pc.Index(namespace)
+index = "mcp-index-name"
+idx = pc.Index(index)
 
 mcp = FastMCP("Synthia")
 
 
 def PineconeUpsert(id, vector, data): # ("Id", Embedding, {"text": paragraph})
-    content = json.loads(data)['text']
-    idx.upsert(
+    output = idx.upsert(
         vectors=[
-            (id, vector, {"metadata": str(content)})
+            (id, vector, {"metadata_key": str(data)})
         ],
         namespace=namespace
     )
-    return (id, vector, {"metadata": str(data)})
+    return output
 
 def PineconeQuery(vector, top_k=5):
     return idx.query(
@@ -48,17 +48,22 @@ def PineconeQuery(vector, top_k=5):
 def EmbedParagraph(text):
     try:
         response = co.embed(
-            texts=[text],  # Pass the text as a list
+            texts=[str(text)],  # Pass the text as a list
             model="embed-english-v3.0",  # Use the English embedding model
             input_type="search_query"  # Optional: Specify the input type
         )
-
-        # Extract the embeddings from the response
-        embeddings = response.embeddings[0]  # Get the first (and only) embedding
-        return embeddings
+        if 'embeddings' in response.__dict__ and len(response.embeddings) > 0:
+            embeddings = response.embeddings[0]  # Extract the first embedding
+            
+            # Extract the embeddings from the response
+            embeddings = response.embeddings[0]  # Get the first (and only) embedding
+            return embeddings
+        
+        else:
+            raise ValueError("No embeddings found in the response")
 
     except Exception as e:
-        return []
+        return [e]
 
 @mcp.tool()
 def UploadFragment(paragraph):
@@ -76,13 +81,11 @@ def CalculateContribution(paper, fragmentList): # fragmentList is a list of ids 
     """Determines the contribution of selected knowledge fragments."""
     vectors = []
     for fragment_id in fragmentList:
-        vector = idx.query(
-            id=fragment_id,
-            top_k=1,
-            namespace=namespace,
-            include_values=True,
-            include_metadata=True
-        )['matches'][0]['values']
+        response = idx.fetch(
+            ids=[str(fragment_id)], namespace=namespace
+        )
+        vector = response.vectors[str(fragment_id)]['values']
+        
         vectors.append(vector)
     paper_embedding = EmbedParagraph(paper)
     contributions = cosine_similarity([paper_embedding], vectors)[0]

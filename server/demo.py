@@ -9,19 +9,19 @@ paragraphs = ["Photosynthesis is the process by which green plants, algae, and s
 "As AI assistants gain mainstream adoption, the industry has invested heavily in model capabilities, achieving rapid advances in reasoning and quality. Yet even the most sophisticated models are constrained by their isolation from data—trapped behind information silos and legacy systems. Every new data source requires its own custom implementation, making truly connected systems difficult to scale."            
 ]
 for p in paragraphs:
-    UploadFragment({"text": p}) #returns (id, vector, {"metadata": str(data)})
+    UploadFragment({"text": p})
 
 
 
 #Retrieve similar fragments
 prompt = "Tell me about Model Context Protocol"
 QueryFragment(prompt) # returns something like the following:
-# {'matches': [{'id': 'bird',
-#               'metadata': {'metadata_key': PARAGRAPH},
+# {'matches': [{'id': 'id1',
+#               'metadata': {'metadata_key': p1},
 #               'score': 1.00039208,
 #               'values': []},
-#              {'id': 'dog',
-#               'metadata': {'metadata_key': PARAGRAPH},
+#              {'id': 'id2',
+#               'metadata': {'metadata_key': p2},
 #               'score': 0.410071,
 #               'values': []}],
 #  'namespace': 'mcp-namespace',
@@ -30,6 +30,9 @@ QueryFragment(prompt) # returns something like the following:
 
 
 #Calculate the contribution of selected fragments to a paper
-paper = "The Model Context Protocol (MCP) is an open standard that enables developers to build secure, two-way connections between their data sources and AI-powered tools. It provides a straightforward architecture for exposing data through MCP servers or building AI applications that connect to these servers."
-# fragmentList = [] #TODO send the unique ids of the fragments you uploaded
-# CalculateContribution(paper, fragmentList)
+# A sample prompt is 
+prompt = """"
+Can you CalculateContribution for \
+The Model Context Protocol (MCP) is an open standard that enables developers to build secure, two-way connections between their data sources and AI-powered tools. It provides a straightforward architecture for exposing data through MCP servers or building AI applications that connect to these servers. \ 
+and fragmentlist [e56fc04d-2c19-5aa0-b726-9f5de0ea9d29, cat]
+""" 

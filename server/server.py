@@ -34,10 +34,10 @@ app = FastAPI()
 # Add CORS middleware configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React app's default port
+    allow_origins=["http://localhost:3000"],  # Allow requests from your React app
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],  # Allow all HTTP methods (including OPTIONS)
+    allow_headers=["*"],  # Allow all headers
 )
 
 # Define Pydantic models for request validation
@@ -51,14 +51,21 @@ class ContributionRequest(BaseModel):
     paper: str
     fragmentList: list
 
-def PineconeUpsert(id, vector, data): # ("Id", Embedding, {"text": paragraph})
+def PineconeUpsert(id, vector, data):
     output = idx.upsert(
         vectors=[
             (id, vector, {"metadata_key": str(data)})
         ],
         namespace=namespace
     )
-    return output
+    
+    # Return a JSON-serializable response
+    return {
+        "status": "success",
+        "upserted_count": output.get("upserted_count", 0),
+        "namespace": namespace,
+        "id": id
+    }
 
 def PineconeQuery(vector, top_k=5):
     return idx.query(
@@ -94,7 +101,16 @@ def UploadFragment(paragraph):
     print(paragraph)
     embedding = EmbedParagraph(paragraph)
     id = str(uuid.uuid5(uuid.NAMESPACE_DNS, paragraph))
-    return PineconeUpsert(id, embedding, {"text": paragraph})
+    result = PineconeUpsert(id, embedding, {"text": paragraph})
+    
+    # Return a JSON-serializable response
+    return {
+        "status": "success",
+        "message": "Fragment uploaded successfully",
+        "id": id,
+        "embedding": embedding.tolist() if hasattr(embedding, "tolist") else embedding,
+        "pinecone_result": str(result)  # Convert result to a string if it's not JSON-serializable
+    }
     
 @mcp.tool()
 def QueryFragment(prompt):

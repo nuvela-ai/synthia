@@ -13,10 +13,10 @@ function ProjectList({ projects, selectedProjectId, onSelectProject, onDeletePro
 
   return (
     <div className="p-6 bg-slate-800 rounded-lg shadow-lg">
-      <h2 className="text-xl font-semibold mb-4">Projects</h2>
+      <h2 className="text-xl font-semibold mb-4">Papers</h2>
       
       {projects.length === 0 ? (
-        <div className="text-gray-400">No Projects found</div>
+        <div className="text-gray-400">No Papers found</div>
       ) : (
         <ul className="space-y-4">
           {projects.map(project => (

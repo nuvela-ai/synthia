@@ -145,16 +145,6 @@ function ProjectConfig({ project, onSave }) {
         >
           Project Details
         </button>
-        <button
-          className={`px-4 py-2 rounded-lg ${
-            activeTab === 'fragments'
-              ? 'bg-blue-500 text-white'
-              : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
-          }`}
-          onClick={() => setActiveTab('fragments')}
-        >
-          Fragments
-        </button>
       </div>
       
       <div className="tab-content">

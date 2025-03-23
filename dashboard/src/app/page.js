@@ -1,15 +1,13 @@
-// First, let's update the mockData.js to have the correct structure:
-// Home.js
 "use client";
 
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import ProjectList from "../components/ProjectList";
 import ProjectConfig from "../components/ProjectConfig";
 import { mockProjects, mockFragments } from "../components/mockData";
 
 export default function Home() {
-  const [projects, setProjects] = useState([]);
+  const [projects, setProjects] = useState([]); // Start with no projects
   const [selectedProject, setSelectedProject] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [newProjectName, setNewProjectName] = useState("");
@@ -17,10 +15,16 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("details"); // "details" or "fragments"
   const [projectFragments, setProjectFragments] = useState([]); // Fragments for the selected project
 
+  // State for adding a new fragment
+  const [newFragmentSummary, setNewFragmentSummary] = useState("");
+  const [newFragmentLink, setNewFragmentLink] = useState("");
+
+  // Persistent counter for fragment IDs
+  const fragmentIdCounter = useRef(0);
+
   useEffect(() => {
-    // Simulate loading projects
+    // Simulate loading projects (empty on startup)
     setTimeout(() => {
-      setProjects(mockProjects);
       setIsLoading(false);
     }, 1000);
 
@@ -49,11 +53,11 @@ export default function Home() {
   const handleProjectSelect = (projectId) => {
     const project = projects.find((p) => p.id === projectId);
     setSelectedProject(project);
-    
+
     // Filter fragments for this project
-    const fragments = mockFragments.filter(f => f.projectId === projectId);
+    const fragments = mockFragments.filter((f) => f.projectId === projectId);
     setProjectFragments(fragments);
-    
+
     // Reset to details tab when selecting a new project
     setActiveTab("details");
   };
@@ -67,18 +71,30 @@ export default function Home() {
 
     setIsLoading(true);
     try {
-      // Simulate API call by adding mock data
+      // Create a new project
       const newProject = {
-        id: `proj_${newProjectName.toLowerCase().replace(/\s+/g, '_')}`,
+        id: `proj_${newProjectName.toLowerCase().replace(/\s+/g, "_")}`,
         name: newProjectName,
-        template: 'default',
-        projects: 'projects',
+        template: "default",
+        projects: "projects",
         context: newProjectContext,
-        url: 'https://example.com/new-project',
+        url: "https://example.com/new-project",
       };
+
+      // Add the new project to the projects state
       setProjects([...projects, newProject]);
+
+      // Associate all fragments from mock data with the new project
+      const fragmentsForNewProject = mockFragments.map((fragment) => ({
+        ...fragment,
+        projectId: newProject.id, // Associate with the new project
+      }));
+      setProjectFragments(fragmentsForNewProject);
+
+      // Select the newly created project
       setSelectedProject(newProject);
-      setProjectFragments([]); // No fragments for new project
+
+      // Clear the form fields
       setNewProjectName("");
       setNewProjectContext("");
       setIsLoading(false);
@@ -98,13 +114,36 @@ export default function Home() {
   };
 
   const handleAddFragment = () => {
-    alert("Add Fragment functionality would be implemented here");
-    // In a real app, you would open a modal or redirect to create a new fragment
+    if (!newFragmentSummary.trim() || !newFragmentLink.trim()) {
+      alert("Please enter both a summary and a link for the fragment.");
+      return;
+    }
+
+    const newFragment = {
+      id: `frag_${fragmentIdCounter.current++}`, // Unique ID using the counter
+      name: `Fragment ${projectFragments.length + 1}`,
+      template: "default",
+      context: newFragmentSummary,
+      url: newFragmentLink,
+      projectId: selectedProject.id, // Associate with the selected project
+    };
+
+    // Add the new fragment to the projectFragments state
+    setProjectFragments([...projectFragments, newFragment]);
+
+    // Clear the form fields
+    setNewFragmentSummary("");
+    setNewFragmentLink("");
+  };
+
+  const handleDeleteFragment = (fragmentId) => {
+    const updatedFragments = projectFragments.filter((f) => f.id !== fragmentId);
+    setProjectFragments(updatedFragments);
   };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-6 sm:px-12 bg-[#5880FA] text-white">
-      {/* Logo */}
+      {/* Logo and Header */}
       <header className="flex flex-col items-center gap-4 text-center py-8">
         <div className="relative group">
           <Image
@@ -148,7 +187,7 @@ export default function Home() {
                     }`}
                     onClick={() => setActiveTab("details")}
                   >
-                    Project Details
+                    Paper Details
                   </button>
                   <button
                     className={`px-6 py-3 font-medium ${
@@ -180,14 +219,15 @@ export default function Home() {
                       <h2 className="text-xl font-semibold mb-4">
                         Fragments ({projectFragments.length})
                       </h2>
-                      
+
+                      {/* Fragment List */}
                       {projectFragments.length === 0 ? (
                         <div className="text-slate-400 mb-6">No fragments available for this project.</div>
                       ) : (
                         <div className="space-y-4 mb-6">
                           {projectFragments.map((fragment) => (
                             <div
-                              key={fragment.id}
+                              key={fragment.id} // Unique key for each fragment
                               className="p-4 bg-slate-700/50 rounded-lg"
                             >
                               <div className="flex justify-between">
@@ -197,40 +237,70 @@ export default function Home() {
                               <p className="text-sm text-slate-300 mt-1">
                                 {fragment.context}
                               </p>
-                              <a
-                                href={fragment.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-blue-400 mt-2 inline-block"
-                              >
-                                View Details
-                              </a>
+                              <div className="flex justify-between items-center mt-2">
+                                <a
+                                  href={fragment.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-blue-400"
+                                >
+                                  Go to Source
+                                </a>
+                                {/* Delete Button */}
+                                <button
+                                  onClick={() => handleDeleteFragment(fragment.id)}
+                                  className="text-red-500 hover:text-red-600"
+                                >
+                                  🗑️
+                                </button>
+                              </div>
                             </div>
                           ))}
                         </div>
                       )}
 
-                      <button
-                        onClick={handleAddFragment}
-                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded text-white font-medium transition-colors"
-                      >
-                        Add Fragment
-                      </button>
-
-                      <div className="mt-8">
-                        <h3 className="text-lg font-semibold mb-4">Fragment Tools</h3>
-                        <div className="flex flex-wrap gap-4">
-                          <button className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-white transition-colors">
-                            Suggest Fragment
+                      {/* Add Fragment Form */}
+                      <div className="mb-6">
+                        <h3 className="text-lg font-semibold mb-4">Add New Fragment</h3>
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            handleAddFragment();
+                          }}
+                          className="space-y-4"
+                        >
+                          <div>
+                            <label className="block text-sm font-medium mb-1">Summary</label>
+                            <textarea
+                              placeholder="Enter fragment summary"
+                              value={newFragmentSummary}
+                              onChange={(e) => setNewFragmentSummary(e.target.value)}
+                              className="w-full p-2 rounded-lg bg-slate-700/50 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              rows="3"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-1">Link</label>
+                            <input
+                              type="url"
+                              placeholder="Enter fragment link"
+                              value={newFragmentLink}
+                              onChange={(e) => setNewFragmentLink(e.target.value)}
+                              className="w-full p-2 rounded-lg bg-slate-700/50 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              required
+                            />
+                          </div>
+                          <button
+                            type="submit"
+                            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded text-white font-medium transition-colors"
+                          >
+                            Add Fragment
                           </button>
-                          <button className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-white transition-colors">
-                            Save Fragment
-                          </button>
-                          <button className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-white transition-colors">
-                            Generate Citations
-                          </button>
-                        </div>
+                        </form>
                       </div>
+
+
                     </div>
                   )}
                 </div>

@@ -12,6 +12,9 @@ from mcp.server.fastmcp import FastMCP
 import uuid
 from sklearn.metrics.pairwise import cosine_similarity
 import json
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, Body
+from pydantic import BaseModel
 
 load_dotenv()
 
@@ -24,8 +27,29 @@ namespace="mcp-namespace"
 index = "mcp-index-name"
 idx = pc.Index(index)
 
+# Initialize FastAPI
+app = FastAPI()
 mcp = FastMCP("Synthia")
 
+# Add CORS middleware configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # React app's default port
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Define Pydantic models for request validation
+class ParagraphRequest(BaseModel):
+    paragraph: str
+
+class PromptRequest(BaseModel):
+    prompt: str
+
+class ContributionRequest(BaseModel):
+    paper: str
+    fragmentList: list
 
 def PineconeUpsert(id, vector, data): # ("Id", Embedding, {"text": paragraph})
     output = idx.upsert(
@@ -67,6 +91,7 @@ def EmbedParagraph(text):
 
 @mcp.tool()
 def UploadFragment(paragraph):
+    print(paragraph)
     embedding = EmbedParagraph(paragraph)
     id = str(uuid.uuid5(uuid.NAMESPACE_DNS, paragraph))
     return PineconeUpsert(id, embedding, {"text": paragraph})
@@ -91,6 +116,33 @@ def CalculateContribution(paper, fragmentList): # fragmentList is a list of ids 
     contributions = cosine_similarity([paper_embedding], vectors)[0]
     return {fragmentList[i]: contributions[i] for i in range(len(fragmentList))}
 
+# FastAPI routes
+@app.post("/UploadFragment")
+async def upload_fragment_api(request: ParagraphRequest):
+    return UploadFragment(request.paragraph)
+
+@app.post("/QueryFragment")
+async def query_fragment_api(request: PromptRequest):
+    return QueryFragment(request.prompt)
+
+@app.post("/CalculateContribution")
+async def calculate_contribution_api(request: ContributionRequest):
+    return CalculateContribution(request.paper, request.fragmentList)
+
 
 if __name__ == "__main__":
-    mcp.run(transport='stdio')
+    # Run both FastAPI server and MCP
+    import uvicorn
+    import threading
+    
+    # Start MCP in a separate thread
+    def run_mcp():
+        mcp.run(transport='stdio')
+    
+    # Start MCP in background thread
+    mcp_thread = threading.Thread(target=run_mcp)
+    mcp_thread.daemon = True
+    mcp_thread.start()
+    
+    # Run the FastAPI app
+    uvicorn.run(app, host="0.0.0.0", port=8000)

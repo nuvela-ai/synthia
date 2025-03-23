@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from "react";
 import ProjectList from "../components/ProjectList";
 import ProjectConfig from "../components/ProjectConfig";
 import { mockProjects, mockFragments } from "../components/mockData";
+import { mcpApi } from '../utils/api';
 
 export default function Home() {
   const [projects, setProjects] = useState([]);
@@ -175,6 +176,12 @@ export default function Home() {
     }
 
     setIsLoading(true);
+    try {
+      const result = await mcpApi.uploadFragment("testing a new paragraph");
+      console.log(result);
+    } catch (error) {
+      console.error('Error:', error);
+    }
     try {
       // Create a new project
       const newProject = {

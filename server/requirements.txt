@@ -1,0 +1,7 @@
+numpy
+scikit-learn
+dotenv
+cohere
+pinecone
+mcp
+uvicorn

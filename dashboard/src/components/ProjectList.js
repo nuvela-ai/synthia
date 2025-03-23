@@ -1,4 +1,3 @@
-ProjectList.js
 import React from 'react';
 
 function ProjectList({ projects, selectedProjectId, onSelectProject, onDeleteProject, isLoading }) {

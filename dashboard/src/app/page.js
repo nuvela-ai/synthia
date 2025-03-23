@@ -32,23 +32,23 @@ export default function Home() {
 
     const fetchProjects = async () => {
       try {
-        const response = await fetch("http://localhost:5000/query_fragment", {
+        const response = await fetch("http://localhost:8000/QueryFragment", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            paragraph: "Some example paragraph to query",
+            prompt: "Some example paragraph to query",  // Ensure this matches the Pydantic model
           }),
         });
+    
+        console.log("Response status:", response.status);
         const data = await response.json();
-        console.log(data);
+        console.log("Response data:", data);
       } catch (error) {
         console.error("Error fetching projects:", error);
       }
     };
-
-    fetchProjects();
   }, []);
 
   const LatexEditor = ({ content, onContentChange, onClose }) => {
@@ -377,6 +377,7 @@ export default function Home() {
                         <form
                           onSubmit={(e) => {
                             e.preventDefault();
+                            fetchProjects();
                             handleAddFragment();
                           }}
                           className="space-y-4"

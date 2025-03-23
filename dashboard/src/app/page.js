@@ -7,28 +7,26 @@ import ProjectConfig from "../components/ProjectConfig";
 import { mockProjects, mockFragments } from "../components/mockData";
 
 export default function Home() {
-  const [projects, setProjects] = useState([]); // Start with no projects
+  const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectContext, setNewProjectContext] = useState("");
-  const [activeTab, setActiveTab] = useState("details"); // "details" or "fragments"
-  const [projectFragments, setProjectFragments] = useState([]); // Fragments for the selected project
-
-  // State for adding a new fragment
+  const [activeTab, setActiveTab] = useState("details");
+  const [projectFragments, setProjectFragments] = useState([]);
+  const [showCitations, setShowCitations] = useState(false);
+  const [showLatexEditor, setShowLatexEditor] = useState(false);
+  const [latexContent, setLatexContent] = useState("");
+  const [showSourceAnalysis, setShowSourceAnalysis] = useState(false);
   const [newFragmentSummary, setNewFragmentSummary] = useState("");
   const [newFragmentLink, setNewFragmentLink] = useState("");
-
-  // Persistent counter for fragment IDs
   const fragmentIdCounter = useRef(0);
 
   useEffect(() => {
-    // Simulate loading projects (empty on startup)
     setTimeout(() => {
       setIsLoading(false);
     }, 1000);
 
-    // Your API fetch code can stay here
     const fetchProjects = async () => {
       try {
         const response = await fetch("http://localhost:5000/query_fragment", {
@@ -49,6 +47,94 @@ export default function Home() {
 
     fetchProjects();
   }, []);
+
+  const LatexEditor = ({ content, onContentChange, onClose }) => {
+    return (
+      <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-6">
+        <div className="bg-slate-800/90 rounded-xl shadow-2xl border border-slate-700/50 w-full max-w-4xl p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">LaTeX Editor</h2>
+            <button
+              onClick={onClose}
+              className="text-slate-300 hover:text-slate-100"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-6">
+            {/* LaTeX Editor */}
+            <div>
+              <h3 className="text-lg font-medium mb-2">Editor</h3>
+              <textarea
+                value={content}
+                onChange={(e) => onContentChange(e.target.value)}
+                className="w-full h-64 p-3 rounded-lg bg-slate-700/50 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="Write your LaTeX content here..."
+              />
+            </div>
+            {/* LaTeX Preview */}
+            <div>
+              <h3 className="text-lg font-medium mb-2">Preview</h3>
+              <div className="h-64 p-3 rounded-lg bg-slate-700/50 text-white overflow-y-auto">
+                <pre>{content}</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const SourceAnalysisModal = ({ fragments, onClose }) => {
+    // Generate random percentages for each fragment
+    const sourceAnalysisData = fragments.map((fragment) => ({
+      fragmentId: fragment.id,
+      semanticMatch: `This fragment discusses ${fragment.name.toLowerCase()}.`, // Example semantic match
+      matchPercentage: Math.floor(Math.random() * (100 - 70 + 1)) + 70, // Random percentage between 70 and 100
+    }));
+  
+    return (
+      <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-6">
+        <div className="bg-slate-800/90 rounded-xl shadow-2xl border border-slate-700/50 w-full max-w-4xl p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Source Analysis</h2>
+            <button
+              onClick={onClose}
+              className="text-slate-300 hover:text-slate-100"
+            >
+              ✕
+            </button>
+          </div>
+          {/* Scrollable container */}
+          <div className="max-h-[70vh] overflow-y-auto">
+            <div className="space-y-4">
+              {fragments.map((fragment) => {
+                const analysis = sourceAnalysisData.find((data) => data.fragmentId === fragment.id);
+                return (
+                  <div key={fragment.id} className="p-4 bg-slate-700/50 rounded-lg">
+                    <h4 className="font-medium">{fragment.name}</h4>
+                    <p className="text-sm text-slate-300 mt-1">
+                      {analysis ? analysis.semanticMatch : "No analysis available."}
+                    </p>
+                    {analysis && (
+                      <div className="mt-2">
+                        <span className="text-sm text-slate-400">
+                          Match Confidence:{" "}
+                          <span className="font-semibold text-green-400">
+                            {analysis.matchPercentage}%
+                          </span>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const handleProjectSelect = (projectId) => {
     const project = projects.find((p) => p.id === projectId);
@@ -300,7 +386,63 @@ export default function Home() {
                         </form>
                       </div>
 
+                      {/* Generate Citations, Generate Paper, and Source Analysis Buttons */}
+                      {projectFragments.length > 0 && (
+                        <div className="flex gap-4 mb-6">
+                          <button
+                            onClick={() => setShowCitations(true)}
+                            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded text-white font-medium transition-colors"
+                          >
+                            Generate Citations
+                          </button>
+                          <button
+                            onClick={() => {
+                              const latex = projectFragments
+                                .map(
+                                  (fragment, index) =>
+                                    `\\section*{${fragment.name}}\n${fragment.context}\n\\textbf{Source:} \\url{${fragment.url}}\n`
+                                )
+                                .join("\n");
+                              setLatexContent(latex);
+                              setShowLatexEditor(true);
+                            }}
+                            className="px-4 py-2 bg-green-500 hover:bg-green-600 rounded text-white font-medium transition-colors"
+                          >
+                            Generate Paper
+                          </button>
+                          <button
+                            onClick={() => setShowSourceAnalysis(true)}
+                            className="px-4 py-2 bg-purple-500 hover:bg-purple-600 rounded text-white font-medium transition-colors"
+                          >
+                            Source Analysis
+                          </button>
+                        </div>
+                      )}
 
+                      {/* Citations Section */}
+                      {showCitations && (
+                        <div className="mt-8">
+                          <h3 className="text-lg font-semibold mb-4">Generated Citations</h3>
+                          <div className="space-y-4">
+                            {projectFragments.map((fragment, index) => (
+                              <div key={fragment.id} className="p-4 bg-slate-700/50 rounded-lg">
+                                <p className="text-sm text-slate-300">
+                                  <strong>Citation {index + 1}:</strong> {fragment.name} - {fragment.context} (
+                                  <a
+                                    href={fragment.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-400 hover:text-blue-500"
+                                  >
+                                    Source
+                                  </a>
+                                  )
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -342,6 +484,23 @@ export default function Home() {
       <footer className="mt-10 py-6 flex flex-wrap items-center justify-center gap-6 text-sm text-slate-400">
         <p>Synthia Dashboard &copy; {new Date().getFullYear()}</p>
       </footer>
+
+      {/* LaTeX Editor Modal */}
+      {showLatexEditor && (
+        <LatexEditor
+          content={latexContent}
+          onContentChange={setLatexContent}
+          onClose={() => setShowLatexEditor(false)}
+        />
+      )}
+
+      {/* Source Analysis Modal */}
+      {showSourceAnalysis && (
+        <SourceAnalysisModal
+          fragments={projectFragments}
+          onClose={() => setShowSourceAnalysis(false)}
+        />
+      )}
     </div>
   );
 }

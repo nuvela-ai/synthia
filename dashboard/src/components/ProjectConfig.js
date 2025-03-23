@@ -88,9 +88,6 @@ function ProjectConfig({ project, onSave }) {
             <div className="text-sm text-gray-400">
               <span className="font-medium">Template:</span> {project.template}
             </div>
-            <div className="text-sm text-gray-400">
-              <span className="font-medium">Fragments:</span> {project.fragments}
-            </div>
           </div>
         </div>
       )}

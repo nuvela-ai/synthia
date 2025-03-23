@@ -1,4 +1,6 @@
 "use client";
+import katex from "katex";
+import "katex/dist/katex.min.css";
 
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
@@ -52,19 +54,17 @@ export default function Home() {
     const previewRef = useRef(null);
   
     useEffect(() => {
-      const renderMathJax = () => {
-        if (window.MathJax) {
-          previewRef.current.innerHTML = content;
-          window.MathJax.typesetPromise([previewRef.current]).catch((err) => {
-            console.error("MathJax typeset error:", err);
+      if (previewRef.current) {
+        try {
+          // Render the LaTeX content using KaTeX
+          katex.render(content, previewRef.current, {
+            throwOnError: false, // Don't throw errors for invalid LaTeX
           });
-        } else {
-          // Retry after 100ms if MathJax is not yet loaded
-          setTimeout(renderMathJax, 100);
+        } catch (error) {
+          console.error("KaTeX rendering error:", error);
+          previewRef.current.innerHTML = content; // Fallback to plain text if rendering fails
         }
-      };
-  
-      renderMathJax();
+      }
     }, [content]);
   
     return (

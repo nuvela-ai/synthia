@@ -1,5 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import "katex/dist/katex.min.css"; // Import KaTeX CSS
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,29 +21,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-        {/* Load MathJax */}
-        <script
-          src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
-          async
-        ></script>
-        {/* MathJax Configuration */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              MathJax = {
-                tex: {
-                  inlineMath: [['$', '$'], ['\\\\(', '\\\\)']],
-                  displayMath: [['$$', '$$'], ['\\\\[', '\\\\]']],
-                  processEscapes: true,
-                  processEnvironments: true
-                },
-                options: {
-                  skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
-                }
-              };
-            `,
-          }}
-        />
+        {/* No MathJax script or configuration needed */}
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}

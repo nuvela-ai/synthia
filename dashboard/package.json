@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "katex": "^0.16.21",
     "mathjax": "^3.2.2",
     "next": "15.2.3",
     "react": "^19.0.0",

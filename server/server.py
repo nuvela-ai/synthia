@@ -11,6 +11,7 @@ from pinecone import (
 from mcp.server.fastmcp import FastMCP
 import uuid
 from sklearn.metrics.pairwise import cosine_similarity
+import json
 
 load_dotenv()
 
@@ -22,14 +23,18 @@ co = cohere.Client(COHERE_API_KEY)
 namespace="mcp-namespace"
 idx = pc.Index(namespace)
 
+mcp = FastMCP("Synthia")
 
-def PineconeUpsert(vector, metadata): # ("Id", Embedding, {"text": paragraph})
+
+def PineconeUpsert(id, vector, data): # ("Id", Embedding, {"text": paragraph})
+    content = json.loads(data)['text']
     idx.upsert(
         vectors=[
-            (id, vector, metadata)
+            (id, vector, {"metadata": str(content)})
         ],
         namespace=namespace
     )
+    return (id, vector, {"metadata": str(data)})
 
 def PineconeQuery(vector, top_k=5):
     return idx.query(
@@ -55,17 +60,15 @@ def EmbedParagraph(text):
     except Exception as e:
         return []
 
-mcp = FastMCP("Synthia")
-
 @mcp.tool()
 def UploadFragment(paragraph):
     embedding = EmbedParagraph(paragraph)
     id = str(uuid.uuid5(uuid.NAMESPACE_DNS, paragraph))
-    PineconeUpsert(id, embedding, {"text": paragraph})
+    return PineconeUpsert(id, embedding, {"text": paragraph})
     
 @mcp.tool()
-def QueryFragment(paragraph):
-    embedding = EmbedParagraph(paragraph)
+def QueryFragment(prompt):
+    embedding = EmbedParagraph(prompt)
     return PineconeQuery(embedding)
   
 @mcp.tool()
@@ -76,7 +79,7 @@ def CalculateContribution(paper, fragmentList): # fragmentList is a list of ids 
         vector = idx.query(
             id=fragment_id,
             top_k=1,
-            namespace="mcp-namespace",
+            namespace=namespace,
             include_values=True,
             include_metadata=True
         )['matches'][0]['values']

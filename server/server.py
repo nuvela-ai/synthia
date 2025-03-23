@@ -27,9 +27,9 @@ namespace="mcp-namespace"
 index = "mcp-index-name"
 idx = pc.Index(index)
 
-# Initialize FastAPI
-app = FastAPI()
+# Initialize MCP & FastAPI
 mcp = FastMCP("Synthia")
+app = FastAPI()
 
 # Add CORS middleware configuration
 app.add_middleware(
@@ -131,18 +131,15 @@ async def calculate_contribution_api(request: ContributionRequest):
 
 
 if __name__ == "__main__":
-    # Run both FastAPI server and MCP
+    import sys
     import uvicorn
-    import threading
     
-    # Start MCP in a separate thread
-    def run_mcp():
+    # Check command line arguments
+    if len(sys.argv) > 1 and sys.argv[1] == "api":
+        # Run as FastAPI
+        print("Starting server in FastAPI mode...")
+        uvicorn.run(app, host="0.0.0.0", port=8000)
+    else:
+        # Run as MCP
+        print("Starting server in MCP mode...")
         mcp.run(transport='stdio')
-    
-    # Start MCP in background thread
-    mcp_thread = threading.Thread(target=run_mcp)
-    mcp_thread.daemon = True
-    mcp_thread.start()
-    
-    # Run the FastAPI app
-    uvicorn.run(app, host="0.0.0.0", port=8000)

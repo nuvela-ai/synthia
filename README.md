@@ -39,7 +39,12 @@ pip install -r requirements.txt
 3 Run the MCP server:
 
 ```bash
-python main.py
+python server.py
+```
+
+4 Run using FastAPI instead
+```bash
+python server.py API
 ```
 
 ### React Dashboard
@@ -61,7 +66,7 @@ npm install
 3. Start the React application:
 
 ```bash
-npm start
+npm run dev
 ```
 
 ## Contributing

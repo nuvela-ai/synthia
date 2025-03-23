@@ -7,10 +7,10 @@ import { useState, useEffect, useRef } from "react";
 import ProjectList from "../components/ProjectList";
 import ProjectConfig from "../components/ProjectConfig";
 import { mockProjects, mockFragments } from "../components/mockData";
-//import { LatexEditor } from '../utils/pdf';
+import { mcpApi } from '../utils/api';
 
 export default function Home() {
-  const [projects, setProjects] = useState(mockProjects); // Initialize with mock projects
+  const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [newProjectName, setNewProjectName] = useState("");
@@ -21,217 +21,52 @@ export default function Home() {
   const [showLatexEditor, setShowLatexEditor] = useState(false);
   const [latexContent, setLatexContent] = useState("");
   const [showSourceAnalysis, setShowSourceAnalysis] = useState(false);
-  const [newFragmentTitle, setNewFragmentTitle] = useState("");
   const [newFragmentSummary, setNewFragmentSummary] = useState("");
   const [newFragmentLink, setNewFragmentLink] = useState("");
-  const [newFragmentYear, setNewFragmentYear] = useState("");
-  const [newFragmentAuthor, setNewFragmentAuthor] = useState("");
-  const [previewMode, setPreviewMode] = useState("latex"); // Added to toggle between LaTeX and PDF preview
   const fragmentIdCounter = useRef(0);
 
   useEffect(() => {
     setTimeout(() => {
       setIsLoading(false);
     }, 1000);
+
+    const fetchProjects = async () => {
+      try {
+        const response = await fetch("http://localhost:8000/QueryFragment", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            prompt: "Some example paragraph to query",  // Ensure this matches the Pydantic model
+          }),
+        });
+    
+        console.log("Response status:", response.status);
+        const data = await response.json();
+        console.log("Response data:", data);
+      } catch (error) {
+        console.error("Error fetching projects:", error);
+      }
+    };
   }, []);
 
   const LatexEditor = ({ content, onContentChange, onClose }) => {
     const previewRef = useRef(null);
-    const pdfPreviewRef = useRef(null);
-    
-    // Function to render specific LaTeX elements
-    const renderLatexPreview = (content) => {
-      if (!previewRef.current) return;
-      
-      try {
-        // Clear the preview container
-        previewRef.current.innerHTML = "";
-        
-        // Create a container for the rendered content
-        const container = document.createElement('div');
-        container.className = 'latex-preview-container text-white';
-        
-        // Extract title if present
-        const titleMatch = content.match(/\\title{\\textbf{(.*?)}}/);
-        if (titleMatch && titleMatch[1]) {
-          const titleElem = document.createElement('h1');
-          titleElem.className = 'text-xl font-bold text-center mb-4';
-          titleElem.textContent = titleMatch[1];
-          container.appendChild(titleElem);
-        }
-        
-        // Extract abstract if present
-        const abstractMatch = content.match(/\\begin{abstract}([\s\S]*?)\\end{abstract}/);
-        if (abstractMatch && abstractMatch[1]) {
-          const abstractSection = document.createElement('div');
-          abstractSection.className = 'mb-4';
-          
-          const abstractTitle = document.createElement('h2');
-          abstractTitle.className = 'text-lg font-semibold mb-2';
-          abstractTitle.textContent = 'Abstract';
-          abstractSection.appendChild(abstractTitle);
-          
-          const abstractText = document.createElement('p');
-          abstractText.className = 'text-sm mb-4 italic';
-          abstractText.textContent = abstractMatch[1].replace(/\\noindent\s+/g, '').trim();
-          abstractSection.appendChild(abstractText);
-          
-          container.appendChild(abstractSection);
-        }
-        
-        // Extract sections
-        const sectionMatches = content.matchAll(/\\section\*{(.*?)}([\s\S]*?)(?=\\section\*{|\\end{document})/g);
-        for (const match of sectionMatches) {
-          const sectionTitle = match[1];
-          const sectionContent = match[2].trim();
-          
-          const sectionElement = document.createElement('div');
-          sectionElement.className = 'mb-6';
-          
-          const sectionTitleElem = document.createElement('h2');
-          sectionTitleElem.className = 'text-lg font-semibold mb-2';
-          sectionTitleElem.textContent = sectionTitle;
-          sectionElement.appendChild(sectionTitleElem);
-          
-          // Check for subsections
-          if (sectionContent.includes('\\subsection*{')) {
-            const subsectionMatches = sectionContent.matchAll(/\\subsection\*{(.*?)}([\s\S]*?)(?=\\subsection\*{|$)/g);
-            for (const subMatch of subsectionMatches) {
-              const subsectionTitle = subMatch[1];
-              const subsectionContent = subMatch[2].trim();
-              
-              const subsectionElement = document.createElement('div');
-              subsectionElement.className = 'ml-4 mb-3';
-              
-              const subsectionTitleElem = document.createElement('h3');
-              subsectionTitleElem.className = 'text-md font-semibold mb-2';
-              subsectionTitleElem.textContent = subsectionTitle;
-              subsectionElement.appendChild(subsectionTitleElem);
-              
-              const subsectionText = document.createElement('p');
-              subsectionText.className = 'text-sm mb-2';
-              subsectionText.textContent = subsectionContent.replace(/\\textbf{Source:} \\url{.*?}/g, '').trim();
-              subsectionElement.appendChild(subsectionText);
-              
-              sectionElement.appendChild(subsectionElement);
-            }
-          } else if (sectionContent.includes('\\begin{itemize}')) {
-            // Handle itemized lists
-            const listMatch = sectionContent.match(/\\begin{itemize}([\s\S]*?)\\end{itemize}/);
-            if (listMatch && listMatch[1]) {
-              const listItems = listMatch[1].split('\\item').filter(item => item.trim() !== '');
-              
-              const ulElement = document.createElement('ul');
-              ulElement.className = 'list-disc ml-6 mb-4';
-              
-              listItems.forEach(item => {
-                const itemElement = document.createElement('li');
-                itemElement.className = 'mb-2';
-                itemElement.textContent = item.replace(/\\textbf{(.*?)}:/g, '$1:').trim();
-                ulElement.appendChild(itemElement);
-              });
-              
-              sectionElement.appendChild(ulElement);
-            } else {
-              // Regular paragraph
-              const sectionText = document.createElement('p');
-              sectionText.className = 'text-sm';
-              sectionText.textContent = sectionContent;
-              sectionElement.appendChild(sectionText);
-            }
-          } else {
-            // Regular paragraph
-            const sectionText = document.createElement('p');
-            sectionText.className = 'text-sm';
-            sectionText.textContent = sectionContent;
-            sectionElement.appendChild(sectionText);
-          }
-          
-          container.appendChild(sectionElement);
-        }
-        
-        // Append the entire container to the preview element
-        previewRef.current.appendChild(container);
-      } catch (error) {
-        console.error("LaTeX rendering error:", error);
-        previewRef.current.innerHTML = "<div class='text-red-500 p-2'>Error rendering LaTeX. Please check your syntax.</div>";
-      }
-    };
-    
-    // PDF preview generation
+  
     useEffect(() => {
-      if (previewMode === "latex" && previewRef.current) {
-        renderLatexPreview(content);
-      } else if (pdfPreviewRef.current && previewMode === "pdf") {
-        generatePdfPreview(content, pdfPreviewRef.current);
+      if (previewRef.current) {
+        try {
+          // Render the LaTeX content using KaTeX
+          katex.render(content, previewRef.current, {
+            throwOnError: false, // Don't throw errors for invalid LaTeX
+          });
+        } catch (error) {
+          console.error("KaTeX rendering error:", error);
+          previewRef.current.innerHTML = content; // Fallback to plain text if rendering fails
+        }
       }
-    }, [content, previewMode]);
-    
-    // Function to generate a PDF preview from LaTeX content
-    const generatePdfPreview = (latexContent, containerElement) => {
-      // Display a loading message while "generating" the PDF
-      containerElement.innerHTML = '<div class="text-center p-4">Generating PDF preview...</div>';
-      
-      // Extract project title
-      const titleMatch = latexContent.match(/\\title{\\textbf{(.*?)}}/);
-      const projectTitle = titleMatch ? titleMatch[1] : 'Document Title';
-      
-      // Extract abstract content
-      const abstractMatch = latexContent.match(/\\begin{abstract}([\s\S]*?)\\end{abstract}/);
-      const abstractContent = abstractMatch ? 
-        abstractMatch[1].replace(/\\noindent\s+/g, '').trim() : 
-        'Abstract content will appear here';
-      
-      // Simulate PDF generation with a timeout
-      setTimeout(() => {
-        // Create a styled preview that mimics a PDF document
-        containerElement.innerHTML = `
-          <div class="bg-white text-black p-6 rounded shadow-md mx-auto max-w-full" style="min-height: 200px; max-height: 100%; overflow-y: auto;">
-            <div class="text-center mb-6">
-              <h1 class="text-xl font-bold">${projectTitle}</h1>
-              <p class="text-sm mt-2">Author Name</p>
-              <p class="text-sm text-gray-500">${new Date().toLocaleDateString()}</p>
-            </div>
-            <div class="mb-4">
-              <h2 class="text-lg font-semibold mb-2">Abstract</h2>
-              <p class="text-sm">${abstractContent}</p>
-            </div>
-            <div>
-              <h2 class="text-lg font-semibold mb-2">Content</h2>
-              <p class="text-sm">This document includes sections on:</p>
-              <ul class="list-disc ml-6 text-sm">
-                ${latexContent.match(/\\section\*{(.*?)}/g)?.map(section => 
-                  `<li>${section.replace('\\section*{', '').replace('}', '')}</li>`
-                ).join('') || '<li>Introduction</li>'}
-              </ul>
-              <p class="text-sm mt-4">Your document contains ${latexContent.length} characters and approximately ${Math.ceil(latexContent.length/2000)} pages.</p>
-            </div>
-            <div class="mt-6 text-center">
-              <p class="text-xs text-gray-500">Generated by Synthia Dashboard</p>
-              <p class="text-xs text-gray-500">Page 1</p>
-            </div>
-          </div>
-        `;
-      }, 500);
-    };
-  
-    const handleExportPdf = () => {
-      // In a real application, this would trigger the actual PDF generation and download
-      alert("In a production environment, this would generate and download a real PDF file from your LaTeX content.");
-      
-      // Simulating download with a fake download prompt
-      const downloadLink = document.createElement('a');
-      downloadLink.href = '#';
-      downloadLink.download = `${titleMatch ? titleMatch[1] : 'document'}.pdf`;
-      downloadLink.onclick = (e) => {
-        e.preventDefault();
-        alert("PDF generation service would be called here. This is just a demonstration.");
-      };
-      downloadLink.click();
-    };
-  
-    // Extract project title for file naming
-    const titleMatch = content.match(/\\title{\\textbf{(.*?)}}/);
+    }, [content]);
   
     return (
       <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-6">
@@ -245,31 +80,6 @@ export default function Home() {
               ✕
             </button>
           </div>
-          
-          {/* Preview mode toggle buttons */}
-          <div className="mb-4 flex space-x-2">
-            <button 
-              onClick={() => setPreviewMode("latex")}
-              className={`px-3 py-1 rounded ${
-                previewMode === "latex" 
-                  ? "bg-indigo-600 text-white" 
-                  : "bg-slate-700 text-slate-300 hover:bg-slate-600"
-              }`}
-            >
-              LaTeX Preview
-            </button>
-            <button 
-              onClick={() => setPreviewMode("pdf")}
-              className={`px-3 py-1 rounded ${
-                previewMode === "pdf" 
-                  ? "bg-indigo-600 text-white" 
-                  : "bg-slate-700 text-slate-300 hover:bg-slate-600"
-              }`}
-            >
-              PDF Preview
-            </button>
-          </div>
-          
           <div className="grid grid-cols-2 gap-6">
             {/* LaTeX Editor */}
             <div>
@@ -281,37 +91,12 @@ export default function Home() {
                 placeholder="Write your LaTeX content here..."
               />
             </div>
-            
-            {/* Preview Section */}
+            {/* LaTeX Preview */}
             <div>
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="text-lg font-medium">
-                  {previewMode === "latex" ? "LaTeX Preview" : "PDF Preview"}
-                </h3>
-                {previewMode === "pdf" && (
-                  <button
-                    onClick={handleExportPdf}
-                    className="px-3 py-1 text-sm bg-green-600 hover:bg-green-700 rounded text-white"
-                  >
-                    Export PDF
-                  </button>
-                )}
-              </div>
-              
-              {/* LaTeX Preview Container */}
+              <h3 className="text-lg font-medium mb-2">Preview</h3>
               <div
                 ref={previewRef}
-                className={`h-64 p-3 rounded-lg bg-slate-700/50 overflow-y-auto ${
-                  previewMode === "latex" ? "block" : "hidden"
-                }`}
-              />
-              
-              {/* PDF Preview Container */}
-              <div
-                ref={pdfPreviewRef}
-                className={`h-64 p-3 rounded-lg bg-slate-700/50 overflow-y-auto ${
-                  previewMode === "pdf" ? "block" : "hidden"
-                }`}
+                className="h-64 p-3 rounded-lg bg-slate-700/50 text-white overflow-y-auto"
               />
             </div>
           </div>
@@ -320,7 +105,6 @@ export default function Home() {
     );
   };
 
-
   const SourceAnalysisModal = ({ fragments, onClose }) => {
     // Generate random percentages for each fragment
     const sourceAnalysisData = fragments.map((fragment) => ({
@@ -328,7 +112,7 @@ export default function Home() {
       semanticMatch: `This fragment discusses ${fragment.name.toLowerCase()}.`, // Example semantic match
       matchPercentage: Math.floor(Math.random() * (100 - 70 + 1)) + 70, // Random percentage between 70 and 100
     }));
-
+  
     return (
       <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-6">
         <div className="bg-slate-800/90 rounded-xl shadow-2xl border border-slate-700/50 w-full max-w-4xl p-6">
@@ -393,6 +177,12 @@ export default function Home() {
 
     setIsLoading(true);
     try {
+      const result = await mcpApi.uploadFragment("testing a new paragraph");
+      console.log(result);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+    try {
       // Create a new project
       const newProject = {
         id: `proj_${newProjectName.toLowerCase().replace(/\s+/g, "_")}`,
@@ -436,43 +226,31 @@ export default function Home() {
   };
 
   const handleAddFragment = () => {
-    if (!newFragmentTitle.trim() || !newFragmentSummary.trim() || !newFragmentLink.trim()) {
-      alert("Please enter a title, summary, and link for the fragment.");
+    if (!newFragmentSummary.trim() || !newFragmentLink.trim()) {
+      alert("Please enter both a summary and a link for the fragment.");
       return;
     }
-  
+
     const newFragment = {
       id: `frag_${fragmentIdCounter.current++}`, // Unique ID using the counter
-      name: newFragmentTitle, // Use the custom title
+      name: `Fragment ${projectFragments.length + 1}`,
       template: "default",
       context: newFragmentSummary,
       url: newFragmentLink,
-      author: newFragmentAuthor, // Include the author
-      year: newFragmentYear,
       projectId: selectedProject.id, // Associate with the selected project
     };
-  
+
     // Add the new fragment to the projectFragments state
     setProjectFragments([...projectFragments, newFragment]);
-  
+
     // Clear the form fields
-    setNewFragmentTitle("");
     setNewFragmentSummary("");
     setNewFragmentLink("");
-    setNewFragmentAuthor("");
-    setNewFragmentYear("");
   };
 
   const handleDeleteFragment = (fragmentId) => {
     const updatedFragments = projectFragments.filter((f) => f.id !== fragmentId);
     setProjectFragments(updatedFragments);
-  };
-
-  const generateCitations = (fragments) => {
-    return fragments.map((fragment, index) => ({
-      id: `cite_${index + 1}`,
-      text: `${fragment.author}. (${fragment.year}). "${fragment.name}." Retrieved from ${fragment.url}`,
-    }));
   };
 
   return (
@@ -599,45 +377,11 @@ export default function Home() {
                         <form
                           onSubmit={(e) => {
                             e.preventDefault();
+                            fetchProjects();
                             handleAddFragment();
                           }}
                           className="space-y-4"
                         >
-                          {/* Title Input */}
-                          <div>
-                            <label className="block text-sm font-medium mb-1">Title</label>
-                            <input
-                              type="text"
-                              placeholder="Enter fragment title"
-                              value={newFragmentTitle}
-                              onChange={(e) => setNewFragmentTitle(e.target.value)}
-                              className="w-full p-2 rounded-lg bg-slate-700/50 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                              required
-                            />
-                          </div>
-                          {/* Author Input */}
-                          <div>
-                            <label className="block text-sm font-medium mb-1">Author</label>
-                            <input
-                              type="text"
-                              placeholder="Enter fragment author"
-                              value={newFragmentAuthor}
-                              onChange={(e) => setNewFragmentAuthor(e.target.value)}
-                              className="w-full p-2 rounded-lg bg-slate-700/50 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                          </div>
-                          {/* Year Input */}
-                          <div>
-                            <label className="block text-sm font-medium mb-1">Year</label>
-                            <input
-                              type="text"
-                              placeholder="Enter fragment year"
-                              value={newFragmentYear}
-                              onChange={(e) => setNewFragmentYear(e.target.value)}
-                              className="w-full p-2 rounded-lg bg-slate-700/50 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                          </div>
-                          {/* Summary Input */}
                           <div>
                             <label className="block text-sm font-medium mb-1">Summary</label>
                             <textarea
@@ -649,7 +393,6 @@ export default function Home() {
                               required
                             />
                           </div>
-                          {/* Link Input */}
                           <div>
                             <label className="block text-sm font-medium mb-1">Link</label>
                             <input
@@ -680,94 +423,20 @@ export default function Home() {
                             Generate Citations
                           </button>
                           <button
-  onClick={() => {
-    const latex = `
-\\documentclass[12pt]{article}
-\\usepackage{geometry}
-\\geometry{a4paper, margin=1in}
-\\usepackage{url} % For formatting URLs
-\\usepackage{hyperref} % For clickable links
-\\usepackage{fancyhdr} % For headers and footers
-\\usepackage{setspace} % For line spacing
-\\usepackage{indentfirst} % Indent the first paragraph
-\\usepackage{graphicx} % For including images
-\\usepackage{amsmath} % For math equations
-\\usepackage{biblatex} % For bibliography
-\\addbibresource{references.bib} % Add your .bib file here
-
-% Header and footer setup
-\\pagestyle{fancy}
-\\fancyhf{}
-\\fancyhead[L]{\\leftmark}
-\\fancyhead[R]{\\thepage}
-\\fancyfoot[C]{Generated by Synthia Dashboard}
-
-% Title and author
-\\title{\\textbf{${selectedProject.name}}}
-\\author{Author Name} % Replace with dynamic data if needed
-\\date{\\today}
-
-\\begin{document}
-
-\\maketitle
-
-\\begin{abstract}
-\\noindent
-${selectedProject.context}
-\\end{abstract}
-
-\\vspace{1cm}
-
-\\section*{Introduction}
-This paper explores the topic of \\textbf{${selectedProject.name}}. The following sections provide a detailed analysis based on the collected fragments. The goal is to understand the challenges and opportunities in this field, as well as to provide actionable insights for future research.
-
-\\section*{Literature Review}
-The following fragments provide a comprehensive overview of the current state of research on \\textbf{${selectedProject.name}}:
-
-${projectFragments
-  .map(
-    (fragment, index) =>
-      `\\subsection*{${fragment.name}}\n${fragment.context}\n\\textbf{Source:} \\url{${fragment.url}}\n`
-  )
-  .join("\n\n")}
-
-\\section*{Methodology}
-This section outlines the methodology used to analyze the collected fragments. The approach involves qualitative analysis of the sources, with a focus on identifying key themes and patterns.
-
-\\section*{Results and Discussion}
-The analysis of the fragments reveals several key insights:
-
-\\begin{itemize}
-${projectFragments
-  .map(
-    (fragment) =>
-      `\\item \\textbf{${fragment.name}}: ${fragment.context}`
-  )
-  .join("\n")}
-\\end{itemize}
-
-\\section*{Conclusion}
-In conclusion, the analysis of \\textbf{${selectedProject.name}} highlights the importance of addressing unanswerable questions and mitigating hallucination in large language models. The findings suggest that further research is needed to develop more robust frameworks for handling these challenges.
-
-\\section*{References}
-\\
-${projectFragments
-  .map(
-    (fragment, index) =>
-      `\\fragment${index + 1} ${fragment.author ? fragment.author : "Author Unknown"}. (${fragment.year ? fragment.year : "n.d."}). {${fragment.name}}. Retrieved from ${fragment.url}
-    \\`
-  )
-  .join("\n")}
-
-\\end{document}
-`;
-  setLatexContent(latex);
-  setShowLatexEditor(true);
-}}
-  className="px-4 py-2 bg-green-500 hover:bg-green-600 rounded text-white font-medium transition-colors"
->
-  Generate Paper
-</button>
+                            onClick={() => {
+                              const latex = projectFragments
+                                .map(
+                                  (fragment, index) =>
+                                    `\\section*{${fragment.name}}\n${fragment.context}\n\\textbf{Source:} \\url{${fragment.url}}\n`
+                                )
+                                .join("\n");
+                              setLatexContent(latex);
+                              setShowLatexEditor(true);
+                            }}
+                            className="px-4 py-2 bg-green-500 hover:bg-green-600 rounded text-white font-medium transition-colors"
+                          >
+                            Generate Paper
+                          </button>
                           <button
                             onClick={() => setShowSourceAnalysis(true)}
                             className="px-4 py-2 bg-purple-500 hover:bg-purple-600 rounded text-white font-medium transition-colors"
@@ -782,10 +451,19 @@ ${projectFragments
                         <div className="mt-8">
                           <h3 className="text-lg font-semibold mb-4">Generated Citations</h3>
                           <div className="space-y-4">
-                            {generateCitations(projectFragments).map((citation) => (
-                              <div key={citation.id} className="p-4 bg-slate-700/50 rounded-lg">
+                            {projectFragments.map((fragment, index) => (
+                              <div key={fragment.id} className="p-4 bg-slate-700/50 rounded-lg">
                                 <p className="text-sm text-slate-300">
-                                  <strong>Citation {citation.id.replace('cite_', '')}:</strong> {citation.text}
+                                  <strong>Citation {index + 1}:</strong> {fragment.name} - {fragment.context} (
+                                  <a
+                                    href={fragment.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-400 hover:text-blue-500"
+                                  >
+                                    Source
+                                  </a>
+                                  )
                                 </p>
                               </div>
                             ))}

@@ -49,6 +49,24 @@ export default function Home() {
   }, []);
 
   const LatexEditor = ({ content, onContentChange, onClose }) => {
+    const previewRef = useRef(null);
+  
+    useEffect(() => {
+      const renderMathJax = () => {
+        if (window.MathJax) {
+          previewRef.current.innerHTML = content;
+          window.MathJax.typesetPromise([previewRef.current]).catch((err) => {
+            console.error("MathJax typeset error:", err);
+          });
+        } else {
+          // Retry after 100ms if MathJax is not yet loaded
+          setTimeout(renderMathJax, 100);
+        }
+      };
+  
+      renderMathJax();
+    }, [content]);
+  
     return (
       <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-6">
         <div className="bg-slate-800/90 rounded-xl shadow-2xl border border-slate-700/50 w-full max-w-4xl p-6">
@@ -75,9 +93,10 @@ export default function Home() {
             {/* LaTeX Preview */}
             <div>
               <h3 className="text-lg font-medium mb-2">Preview</h3>
-              <div className="h-64 p-3 rounded-lg bg-slate-700/50 text-white overflow-y-auto">
-                <pre>{content}</pre>
-              </div>
+              <div
+                ref={previewRef}
+                className="h-64 p-3 rounded-lg bg-slate-700/50 text-white overflow-y-auto"
+              />
             </div>
           </div>
         </div>
